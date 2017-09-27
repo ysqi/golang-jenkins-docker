@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"fmt"
 
-	"github.com/golang/example/stringutil"
+	// "github.com/golang/example/stringutil"
 )
 
 func main(){
@@ -16,7 +16,8 @@ func main(){
 }
 
 func reverse(src string) string{
-	return stringutil.Reverse(src)
+	return ""
+	// return stringutil.Reverse(src)
 }
 func note() string{
 	if false {
