@@ -33,6 +33,7 @@ RUN curl https://raw.githubusercontent.com/AlDanial/cloc/master/cloc -o /usr/bin
 ADD coverage.sh /usr/bin/coverage
 COPY coverage.sh /app/coverage.sh
 RUN chmod +x /app/coverage.sh
+RUN chmod +x /usr/bin/coverage
 
 WORKDIR $GOPATH
 

@@ -19,9 +19,7 @@ output() {
 workdir=".cover"
 cover_mode="set"
 kernel_name=$(uname -s)
-
-echo "$(ls -all)"
-
+ 
 # 获取所包含的项目包
 packages=$(go list ./... | grep -v vendor)
  
