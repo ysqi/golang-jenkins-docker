@@ -39,9 +39,12 @@ go_version() {
 
 set_workdir() {
   workdir=$1
-  test -d $workdir || mkdir -p $workdir
+  # clean work space
+  rm -rf $workdir
+  mkdir -p $workdir/coverages
   coverage_report="$workdir/coverage.txt"
   coverage_xml_report="$workdir/coverage.xml"
+  coverage_html_report="$workdir/coverage.html"
   junit_report="$workdir/junit.txt"
   junit_xml_report="$workdir/report.xml"
   lint_report="$workdir/lint.txt"
@@ -60,34 +63,28 @@ install_dependency_tool() {
   curl https://raw.githubusercontent.com/AlDanial/cloc/master/cloc -o ${GOPATH}/bin/cloc
   chmod 755 ${GOPATH}/bin/cloc
 }
-
-errorNumber() {
-  if [ "$1" -ne 0 ]; then
-    error=$1
-  fi
-}
+ 
 
 testing() {
   error=0
   test -f ${junit_report} && rm -f ${junit_report}
   output "Running ${cover_mode} mode for coverage."
   for pkg in $packages; do
-    f="$workdir/$(echo $pkg | tr / -).cover"
+    f="$workdir/coverages/$(echo $pkg | tr / -).cover"
     output "Testing coverage report for ${pkg}"
-    go test -v -cover -coverprofile=${f} -covermode=${cover_mode} $pkg | tee -a ${junit_report}
-    # ref: http://stackoverflow.com/questions/1221833/bash-pipe-output-and-capture-exit-status
-    errorNumber ${PIPESTATUS[0]}
+    go test -v -cover -coverprofile=${f} -covermode=${cover_mode} $pkg   2>&1 | tee -a ${junit_report}
   done
 
   output "Convert all packages coverage report to $coverage_report"
   echo "mode: $cover_mode" > "$coverage_report"
-  grep -h -v "^mode:" "$workdir"/*.cover >> "$coverage_report"
+  grep -h -v "^mode:" "$workdir"/coverages/*.cover >> "$coverage_report"
   if [ "$error" -ne 0 ]; then
     output "Get Tesing Error Number Code: ${error}" ${error}
-  fi
+  fi 
 }
 
 generate_cover_report() {
+  go tool cover -html ${coverage_report} -o ${coverage_html_report}
   gocov convert ${coverage_report} | gocov-xml > ${coverage_xml_report}
 }
 
@@ -109,9 +106,8 @@ generate_lint_report() {
 
 generate_vet_report() {
   for pkg in $packages; do
-    output "Go Vet report for ${pkg}"
-    go vet -n -x ${pkg}
-    go vet -n -x ${pkg} | tee -a ${vet_report}
+    output "Go Vet report for ${pkg}" 
+    go tool vet ${pkg}  2>&1 | tee -a ${vet_report}
   done
 }
 
@@ -122,26 +118,19 @@ generate_cloc_report() {
 
 # 设置工作目录
 set_workdir $workdir
-# 1.安装依赖工具
-# output "installing tool..."
-# install_dependency_tool
-# output "installing tool completed"
+# 1.安装依赖工具 
+# install_dependency_tool 
 # 2.测试， 如果测试失败则终止
 testing
 # 生成报告
-# 3.1
+# 3.1 测试覆盖率报告html和xml
 generate_cover_report
-# 3.2
+# 3.2 测试结果转换为junit xml文件
 generate_junit_report
-# 3.3
+# 3.3 golint 检查结果
 generate_lint_report
-# 3.4
+# 3.4 go vet 检查结果
 generate_vet_report
-# 3.5
+# 3.5 代码统计
 generate_cloc_report
-
-
-if [[ "$error" -gt 0 ]]; then
-  exit $error
-fi
 
